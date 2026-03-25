@@ -7,6 +7,7 @@ import 'package:word_puzzle/features/auth/domain/usecases/get_current_user.dart'
 import 'package:word_puzzle/features/auth/domain/usecases/sign_in_anonymously.dart';
 import 'package:word_puzzle/features/auth/domain/usecases/sign_in_with_google.dart';
 import 'package:word_puzzle/features/auth/domain/usecases/sign_out.dart';
+import 'package:word_puzzle/features/auth/domain/usecases/update_user_profile.dart';
 
 // ---------------------------------------------------------------------------
 // Events
@@ -37,6 +38,17 @@ class AuthAnonymousSignInRequested extends AuthEvent {
 /// Fired when the user requests to sign out.
 class AuthSignOutRequested extends AuthEvent {
   const AuthSignOutRequested();
+}
+
+/// Fired when the user updates their profile (name, photoUrl).
+class AuthProfileUpdateRequested extends AuthEvent {
+  final String name;
+  final String photoUrl;
+
+  const AuthProfileUpdateRequested({required this.name, required this.photoUrl});
+
+  @override
+  List<Object?> get props => [name, photoUrl];
 }
 
 // ---------------------------------------------------------------------------
@@ -89,21 +101,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final SignInAnonymously _signInAnonymously;
   final SignOut _signOut;
   final GetCurrentUser _getCurrentUser;
+  final UpdateUserProfile _updateUserProfile;
 
   AuthBloc({
     required SignInWithGoogle signInWithGoogle,
     required SignInAnonymously signInAnonymously,
     required SignOut signOut,
     required GetCurrentUser getCurrentUser,
+    required UpdateUserProfile updateUserProfile,
   })  : _signInWithGoogle = signInWithGoogle,
         _signInAnonymously = signInAnonymously,
         _signOut = signOut,
         _getCurrentUser = getCurrentUser,
+        _updateUserProfile = updateUserProfile,
         super(const AuthInitial()) {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<AuthGoogleSignInRequested>(_onGoogleSignInRequested);
     on<AuthAnonymousSignInRequested>(_onAnonymousSignInRequested);
     on<AuthSignOutRequested>(_onSignOutRequested);
+    on<AuthProfileUpdateRequested>(_onProfileUpdateRequested);
   }
 
   Future<void> _onAuthCheckRequested(
@@ -147,6 +163,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthLoading());
 
     final result = await _signInAnonymously(NoParams());
+
+    result.fold(
+      (failure) => emit(AuthError(failure.message)),
+      (user) => emit(AuthAuthenticated(user)),
+    );
+  }
+
+  Future<void> _onProfileUpdateRequested(
+    AuthProfileUpdateRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+
+    final updatedEntity = currentState.user.copyWith(
+      name: event.name,
+      photoUrl: event.photoUrl,
+    );
+
+    final result = await _updateUserProfile(updatedEntity);
 
     result.fold(
       (failure) => emit(AuthError(failure.message)),

@@ -15,6 +15,12 @@ class UserModel extends UserEntity {
     super.friends,
     super.friendCode,
     super.categoryLevels,
+    super.streak,
+    super.xp,
+    super.lastPlayedDate,
+    super.gamesPlayedToday,
+    super.duelsWonToday,
+    super.friendAddedToday,
   });
 
   /// Creates a [UserModel] from a Firestore document snapshot map.
@@ -29,6 +35,12 @@ class UserModel extends UserEntity {
       friends: List<String>.from(json['friends'] as List? ?? []),
       friendCode: json['friendCode'] as String? ?? '',
       categoryLevels: _parseCategoryLevels(json['categoryLevels']),
+      streak: json['streak'] as int? ?? 0,
+      xp: json['xp'] as int? ?? 0,
+      lastPlayedDate: json['lastPlayedDate'] as String? ?? '',
+      gamesPlayedToday: json['gamesPlayedToday'] as int? ?? 0,
+      duelsWonToday: json['duelsWonToday'] as int? ?? 0,
+      friendAddedToday: json['friendAddedToday'] as bool? ?? false,
     );
   }
 
@@ -67,6 +79,12 @@ class UserModel extends UserEntity {
       friends: entity.friends,
       friendCode: entity.friendCode,
       categoryLevels: entity.categoryLevels,
+      streak: entity.streak,
+      xp: entity.xp,
+      lastPlayedDate: entity.lastPlayedDate,
+      gamesPlayedToday: entity.gamesPlayedToday,
+      duelsWonToday: entity.duelsWonToday,
+      friendAddedToday: entity.friendAddedToday,
     );
   }
 
@@ -82,10 +100,17 @@ class UserModel extends UserEntity {
       'friends': friends,
       'friendCode': friendCode,
       'categoryLevels': categoryLevels,
+      'streak': streak,
+      'xp': xp,
+      'lastPlayedDate': lastPlayedDate,
+      'gamesPlayedToday': gamesPlayedToday,
+      'duelsWonToday': duelsWonToday,
+      'friendAddedToday': friendAddedToday,
     };
   }
 
   /// Returns a copy with the given fields replaced.
+  @override
   UserModel copyWith({
     String? id,
     String? name,
@@ -96,6 +121,12 @@ class UserModel extends UserEntity {
     List<String>? friends,
     String? friendCode,
     Map<String, int>? categoryLevels,
+    int? streak,
+    int? xp,
+    String? lastPlayedDate,
+    int? gamesPlayedToday,
+    int? duelsWonToday,
+    bool? friendAddedToday,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -107,6 +138,12 @@ class UserModel extends UserEntity {
       friends: friends ?? this.friends,
       friendCode: friendCode ?? this.friendCode,
       categoryLevels: categoryLevels ?? this.categoryLevels,
+      streak: streak ?? this.streak,
+      xp: xp ?? this.xp,
+      lastPlayedDate: lastPlayedDate ?? this.lastPlayedDate,
+      gamesPlayedToday: gamesPlayedToday ?? this.gamesPlayedToday,
+      duelsWonToday: duelsWonToday ?? this.duelsWonToday,
+      friendAddedToday: friendAddedToday ?? this.friendAddedToday,
     );
   }
 

@@ -34,6 +34,32 @@ class AppStrings {
   String get totalLevels => isTr ? 'Toplam Seviye' : 'Total Levels';
   String get settings => isTr ? 'Ayarlar' : 'Settings';
 
+  // Home Page - New
+  String get greeting => isTr ? 'Hoş geldin!' : 'Welcome back!';
+  String get dailyStreak => isTr ? 'Günlük Seri' : 'Daily Streak';
+  String get streakDays => isTr ? 'Gün' : 'Days';
+  String get streakMotivation => isTr ? 'Yarın oynayarak serine devam et!' : 'Play tomorrow to keep your streak!';
+  String get levelProgress => isTr ? 'Seviye İlerlemesi' : 'Level Progress';
+  String get dailyQuests => isTr ? 'GÜNLÜK GÖREVLER' : 'DAILY QUESTS';
+  String get quickRound => isTr ? 'Hızlı Tur' : 'Quick Round';
+  String get winDuel => isTr ? 'Düello Kazan' : 'Win Duel';
+  String get addFriendQuest => isTr ? 'Arkadaş Ekle' : 'Add Friend';
+  String get completed => isTr ? 'Tamamlandı' : 'Completed';
+  String get notCompleted => isTr ? 'Tamamlanmadı' : 'Not Completed';
+  String get startGame => isTr ? 'Oyunu Başlat' : 'Start Game';
+  String get rank => isTr ? 'Sıralama' : 'Rank';
+  String get notifications => isTr ? 'Bildirimler' : 'Notifications';
+
+  // Profile Page
+  String get profile => isTr ? 'Profil' : 'Profile';
+  String get editProfile => isTr ? 'Profili Düzenle' : 'Edit Profile';
+  String get displayName => isTr ? 'Kullanıcı Adı' : 'Display Name';
+  String get profilePhoto => isTr ? 'Profil Fotoğrafı' : 'Profile Photo';
+  String get enterPhotoUrl => isTr ? 'Fotoğraf URL girin' : 'Enter photo URL';
+  String get profileUpdated => isTr ? 'Profil güncellendi!' : 'Profile updated!';
+  String get enterName => isTr ? 'İsim girin' : 'Enter a name';
+  String get chooseAvatar => isTr ? 'Avatar Seç' : 'Choose Avatar';
+
   // ---------------------------------------------------------------------------
   // Auth / Login
   // ---------------------------------------------------------------------------

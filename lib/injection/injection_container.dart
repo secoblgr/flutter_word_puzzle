@@ -10,6 +10,7 @@ import 'package:word_puzzle/features/auth/domain/usecases/get_current_user.dart'
 import 'package:word_puzzle/features/auth/domain/usecases/sign_in_with_google.dart';
 import 'package:word_puzzle/features/auth/domain/usecases/sign_in_anonymously.dart';
 import 'package:word_puzzle/features/auth/domain/usecases/sign_out.dart';
+import 'package:word_puzzle/features/auth/domain/usecases/update_user_profile.dart';
 import 'package:word_puzzle/features/auth/presentation/bloc/auth_bloc.dart';
 
 import 'package:word_puzzle/features/game/data/datasources/game_remote_datasource.dart';
@@ -70,6 +71,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => SignInAnonymously(sl()));
   sl.registerLazySingleton(() => SignOut(sl()));
   sl.registerLazySingleton(() => GetCurrentUser(sl()));
+  sl.registerLazySingleton(() => UpdateUserProfile(sl()));
 
   // BLoC
   sl.registerFactory(
@@ -78,6 +80,7 @@ Future<void> init() async {
       signInAnonymously: sl(),
       signOut: sl(),
       getCurrentUser: sl(),
+      updateUserProfile: sl(),
     ),
   );
 

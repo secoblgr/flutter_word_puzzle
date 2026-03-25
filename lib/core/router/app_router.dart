@@ -11,6 +11,7 @@ import 'package:word_puzzle/features/friends/presentation/pages/friends_page.dar
 import 'package:word_puzzle/features/duel/presentation/pages/duel_lobby_page.dart';
 import 'package:word_puzzle/features/duel/presentation/pages/duel_room_page.dart';
 import 'package:word_puzzle/features/home/presentation/pages/home_page.dart';
+import 'package:word_puzzle/features/auth/presentation/pages/profile_page.dart';
 
 class AppRouter {
   AppRouter._();
@@ -33,6 +34,10 @@ class AppRouter {
       GoRoute(
         path: '/home',
         builder: (context, state) => const HomePage(),
+      ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfilePage(),
       ),
       GoRoute(
         path: '/categories',

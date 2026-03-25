@@ -46,20 +46,77 @@ class _HomePageState extends State<HomePage> {
               constraints: BoxConstraints(
                 maxWidth: Responsive(context).maxContentWidth,
               ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(s),
-                    const SizedBox(height: 28),
-                    _buildStatsBar(s),
-                    const SizedBox(height: 28),
-                    _buildPlayButton(s),
-                    const SizedBox(height: 20),
-                    _buildMenuRow(s),
-                  ],
-                ),
+              child: BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, state) {
+                  String name = 'Player';
+                  String? photoUrl;
+                  int score = 0;
+                  int totalLevel = 0;
+                  int streak = 0;
+                  int xp = 0;
+                  int gamesPlayedToday = 0;
+                  int duelsWonToday = 0;
+                  bool friendAddedToday = false;
+
+                  if (state is AuthAuthenticated) {
+                    final user = state.user;
+                    name = user.name;
+                    photoUrl = user.photoUrl;
+                    score = user.score;
+                    streak = user.streak;
+                    xp = user.xp;
+                    gamesPlayedToday = user.gamesPlayedToday;
+                    duelsWonToday = user.duelsWonToday;
+                    friendAddedToday = user.friendAddedToday;
+                    if (user.categoryLevels.isNotEmpty) {
+                      totalLevel = user.categoryLevels.values
+                          .fold(0, (sum, lv) => sum + lv);
+                    } else {
+                      totalLevel = user.level;
+                    }
+                  }
+
+                  // XP for level progress (1000 XP per level)
+                  final xpForLevel = 1000;
+                  final currentXp = xp % xpForLevel;
+                  final xpProgress = currentXp / xpForLevel;
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. Header
+                        _buildHeader(s, name, photoUrl),
+                        const SizedBox(height: 16),
+
+                        // 2. Streak Card
+                        _buildStreakCard(s, streak),
+                        const SizedBox(height: 16),
+
+                        // 3. Stats Row (Score + Level + Rank)
+                        _buildStatsRow(s, score, totalLevel),
+                        const SizedBox(height: 16),
+
+                        // 4. XP Progress
+                        _buildXpProgress(s, currentXp, xpForLevel, xpProgress),
+                        const SizedBox(height: 24),
+
+                        // 5. Daily Quests
+                        _buildDailyQuests(
+                            s, gamesPlayedToday, duelsWonToday, friendAddedToday),
+                        const SizedBox(height: 24),
+
+                        // 6. Play Button
+                        _buildPlayButton(s, state),
+                        const SizedBox(height: 16),
+
+                        // 7. Menu Row
+                        _buildMenuRow(s, state),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -69,115 +126,118 @@ class _HomePageState extends State<HomePage> {
   }
 
   // ---------------------------------------------------------------------------
-  // Header — avatar, name, logout
+  // 1. Header — Avatar + Name + Language + Notification + Settings
   // ---------------------------------------------------------------------------
 
-  Widget _buildHeader(AppStrings s) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, state) {
-        String name = 'Player';
-        String? photoUrl;
-
-        if (state is AuthAuthenticated) {
-          name = state.user.name;
-          photoUrl = state.user.photoUrl;
-        }
-
-        return Row(
-          children: [
-            // Avatar
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primary,
-                    AppColors.primary.withValues(alpha: 0.6),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+  Widget _buildHeader(AppStrings s, String name, String? photoUrl) {
+    return Row(
+      children: [
+        // Avatar — tappable, goes to profile page
+        GestureDetector(
+          onTap: () => context.go('/profile'),
+          child: _buildHomeAvatar(name, photoUrl),
+        ),
+        const SizedBox(width: 12),
+        // Greeting + Name
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                s.greeting,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white.withValues(alpha: 0.5),
                 ),
               ),
-              child: photoUrl != null && photoUrl.isNotEmpty
-                  ? ClipOval(
-                      child: Image.network(photoUrl, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _avatarFallback(name)),
-                    )
-                  : _avatarFallback(name),
-            ),
-            const SizedBox(width: 14),
-            // Greeting
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    s.welcomeBack,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            // Language toggle
-            Consumer<AppLanguageNotifier>(
-              builder: (context, langNotifier, _) {
-                final lang = langNotifier.language;
-                return GestureDetector(
-                  onTap: () => langNotifier.toggle(),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.darkCard,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        lang.flag,
-                        style: const TextStyle(fontSize: 20),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(width: 8),
-            // Logout
-            GestureDetector(
-              onTap: () =>
-                  context.read<AuthBloc>().add(AuthSignOutRequested()),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.darkCard,
-                  borderRadius: BorderRadius.circular(12),
+              Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
-                child: const Icon(Icons.logout_rounded,
-                    color: Colors.white38, size: 20),
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
-        ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1);
-      },
+            ],
+          ),
+        ),
+        // Language toggle
+        Consumer<AppLanguageNotifier>(
+          builder: (context, langNotifier, _) {
+            return _iconButton(
+              child: Text(langNotifier.language.flag,
+                  style: const TextStyle(fontSize: 18)),
+              onTap: () => langNotifier.toggle(),
+            );
+          },
+        ),
+        const SizedBox(width: 8),
+        // Settings / Logout
+        _iconButton(
+          child: const Icon(Icons.settings_rounded,
+              color: Colors.white54, size: 20),
+          onTap: () => context.read<AuthBloc>().add(AuthSignOutRequested()),
+        ),
+      ],
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1);
+  }
+
+  Widget _iconButton({required Widget child, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: AppColors.darkCard,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Center(child: child),
+      ),
+    );
+  }
+
+  static const _avatarColors = [
+    Color(0xFF6C63FF), Color(0xFF03DAC6), Color(0xFFFF6B6B),
+    Color(0xFFFF9800), Color(0xFF4CAF50), Color(0xFFE91E63),
+    Color(0xFF2196F3), Color(0xFF9C27B0), Color(0xFF00BCD4),
+    Color(0xFFFF5722), Color(0xFF795548), Color(0xFF607D8B),
+  ];
+  static const _avatarEmojis = [
+    '\u{1F60E}', '\u{1F916}', '\u{1F47E}', '\u{1F98A}', '\u{1F431}', '\u{1F436}',
+    '\u{1F981}', '\u{1F438}', '\u{1F984}', '\u{1F3AE}', '\u{1F9D9}', '\u{1F977}',
+  ];
+
+  Widget _buildHomeAvatar(String name, String? photoUrl) {
+    if (photoUrl != null && photoUrl.startsWith('avatar:')) {
+      final idx = int.tryParse(photoUrl.replaceFirst('avatar:', '')) ?? 0;
+      final i = idx.clamp(0, _avatarColors.length - 1);
+      return Container(
+        width: 48, height: 48,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _avatarColors[i],
+          border: Border.all(color: _avatarColors[i].withValues(alpha: 0.5), width: 2),
+        ),
+        child: Center(child: Text(_avatarEmojis[i], style: const TextStyle(fontSize: 22))),
+      );
+    }
+    return Container(
+      width: 48, height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.6)],
+        ),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.5), width: 2),
+      ),
+      child: photoUrl != null && photoUrl.isNotEmpty
+          ? ClipOval(child: Image.network(photoUrl, fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _avatarFallback(name)))
+          : _avatarFallback(name),
     );
   }
 
@@ -186,7 +246,7 @@ class _HomePageState extends State<HomePage> {
       child: Text(
         name.isNotEmpty ? name[0].toUpperCase() : 'P',
         style: const TextStyle(
-          fontSize: 22,
+          fontSize: 20,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
@@ -195,71 +255,126 @@ class _HomePageState extends State<HomePage> {
   }
 
   // ---------------------------------------------------------------------------
-  // Stats bar — score & total level
+  // 2. Streak Card
   // ---------------------------------------------------------------------------
 
-  Widget _buildStatsBar(AppStrings s) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, state) {
-        int score = 0;
-        int totalLevel = 0;
-
-        if (state is AuthAuthenticated) {
-          score = state.user.score;
-          // Sum all category levels.
-          if (state.user.categoryLevels.isNotEmpty) {
-            totalLevel = state.user.categoryLevels.values
-                .fold(0, (sum, lv) => sum + lv);
-          } else {
-            totalLevel = state.user.level;
-          }
-        }
-
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.primary.withValues(alpha: 0.15),
-                AppColors.secondary.withValues(alpha: 0.08),
+  Widget _buildStreakCard(AppStrings s, int streak) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6C63FF), Color(0xFF8B7AFF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  s.dailyStreak,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Text('🔥', style: TextStyle(fontSize: 28)),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$streak ${s.streakDays}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  s.streakMotivation,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: 11,
+                  ),
+                ),
               ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.15),
             ),
           ),
-          child: Row(
-            children: [
-              // Score
-              Expanded(
-                child: _StatItem(
-                  icon: Icons.star_rounded,
-                  iconColor: AppColors.timerWarning,
-                  label: s.totalScore,
-                  value: _formatNumber(score),
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 40,
-                color: Colors.white.withValues(alpha: 0.08),
-              ),
-              // Total levels
-              Expanded(
-                child: _StatItem(
-                  icon: Icons.trending_up_rounded,
-                  iconColor: AppColors.secondary,
-                  label: s.totalLevels,
-                  value: '$totalLevel',
-                ),
-              ),
-            ],
+          // Trophy icon
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Center(
+              child: Text('🏅', style: TextStyle(fontSize: 32)),
+            ),
           ),
-        ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1);
-      },
+        ],
+      ),
+    ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.08);
+  }
+
+  // ---------------------------------------------------------------------------
+  // 3. Stats Row — Score + Level + Rank
+  // ---------------------------------------------------------------------------
+
+  Widget _buildStatsRow(AppStrings s, int score, int totalLevel) {
+    final cards = [
+      _StatCard(
+        emoji: '⭐',
+        value: _formatNumber(score),
+        label: s.totalScore,
+        color: AppColors.timerWarning,
+      ),
+      _StatCard(
+        emoji: '🎯',
+        value: '$totalLevel',
+        label: s.level,
+        color: AppColors.secondary,
+      ),
+      _StatCard(
+        emoji: '🏆',
+        value: '#—',
+        label: s.rank,
+        color: const Color(0xFFFF9800),
+      ),
+    ];
+
+    return Row(
+      children: cards.asMap().entries.map((e) {
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: e.key == 0 ? 0 : 4,
+              right: e.key == cards.length - 1 ? 0 : 4,
+            ),
+            child: e.value
+                .animate()
+                .fadeIn(duration: 350.ms, delay: (150 + e.key * 80).ms)
+                .slideY(begin: 0.1),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -270,155 +385,318 @@ class _HomePageState extends State<HomePage> {
   }
 
   // ---------------------------------------------------------------------------
-  // Play button — main CTA
+  // 4. XP Progress Bar
   // ---------------------------------------------------------------------------
 
-  Widget _buildPlayButton(AppStrings s) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, state) {
-        return GestureDetector(
-          onTap: () {
-            final uid = state is AuthAuthenticated ? state.user.id : '';
-            final catLevels =
-                state is AuthAuthenticated ? state.user.categoryLevels : <String, int>{};
-            final lang = context.read<AppLanguageNotifier>().language.name;
-            context.go('/categories', extra: {
-              'userId': uid,
-              'categoryLevels': catLevels,
-              'language': lang,
-            });
-          },
-          child: Container(
-            width: double.infinity,
-            height: 64,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primary, Color(0xFF8B7AFF)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
+  Widget _buildXpProgress(
+      AppStrings s, int currentXp, int xpForLevel, double progress) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              s.levelProgress,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.6),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
               ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.35),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 30),
-                const SizedBox(width: 8),
-                Text(
-                  s.playGame,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            Text(
+              '$currentXp / $xpForLevel XP',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          height: 10,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress.clamp(0.0, 1.0),
+              backgroundColor: Colors.transparent,
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.secondary,
+              ),
             ),
           ),
-        )
-            .animate()
-            .fadeIn(duration: 400.ms, delay: 200.ms)
-            .slideY(begin: 0.15);
-      },
-    );
+        ),
+      ],
+    ).animate().fadeIn(duration: 350.ms, delay: 350.ms);
   }
 
   // ---------------------------------------------------------------------------
-  // Menu row — Duel, Leaderboard, Friends
+  // 5. Daily Quests
   // ---------------------------------------------------------------------------
 
-  Widget _buildMenuRow(AppStrings s) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, state) {
-        final uid = state is AuthAuthenticated ? state.user.id : '';
+  Widget _buildDailyQuests(
+      AppStrings s, int gamesPlayed, int duelsWon, bool friendAdded) {
+    final quests = [
+      _QuestData(
+        emoji: '⚡',
+        title: s.quickRound,
+        progress: '${gamesPlayed.clamp(0, 3)}/3',
+        isComplete: gamesPlayed >= 3,
+        xpReward: 50,
+      ),
+      _QuestData(
+        emoji: '🏆',
+        title: s.winDuel,
+        progress: '${duelsWon.clamp(0, 1)}/1',
+        isComplete: duelsWon >= 1,
+        xpReward: 80,
+      ),
+      _QuestData(
+        emoji: '👥',
+        title: s.addFriendQuest,
+        progress: friendAdded ? '1/1' : '0/1',
+        isComplete: friendAdded,
+        xpReward: 30,
+      ),
+    ];
 
-        final items = [
-          _QuickAction(
-            icon: Icons.sports_esports_rounded,
-            label: s.duel,
-            color: AppColors.secondary,
-            onTap: () => context.go('/duel', extra: {'userId': uid}),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          s.dailyQuests,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.2,
           ),
-          _QuickAction(
-            icon: Icons.leaderboard_rounded,
-            label: s.rankings,
-            color: const Color(0xFFFF9800),
-            onTap: () => context.go('/leaderboard'),
-          ),
-          _QuickAction(
-            icon: Icons.people_rounded,
-            label: s.friends,
-            color: AppColors.accent,
-            onTap: () => context.go('/friends', extra: {'userId': uid}),
-          ),
-        ];
-
-        return Row(
-          children: items.asMap().entries.map((entry) {
-            final index = entry.key;
-            final item = entry.value;
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: quests.asMap().entries.map((e) {
+            final q = e.value;
             return Expanded(
               child: Padding(
                 padding: EdgeInsets.only(
-                  left: index == 0 ? 0 : 6,
-                  right: index == items.length - 1 ? 0 : 6,
+                  left: e.key == 0 ? 0 : 5,
+                  right: e.key == quests.length - 1 ? 0 : 5,
                 ),
-                child: GestureDetector(
-                  onTap: item.onTap,
-                  child: Container(
-                    height: 90,
-                    decoration: BoxDecoration(
-                      color: AppColors.darkCard,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: item.color.withValues(alpha: 0.2),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.darkCard,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: q.isComplete
+                          ? AppColors.correct.withValues(alpha: 0.3)
+                          : Colors.white.withValues(alpha: 0.06),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(q.emoji, style: const TextStyle(fontSize: 24)),
+                      const SizedBox(height: 8),
+                      Text(
+                        q.title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: item.color.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child:
-                              Icon(item.icon, color: item.color, size: 22),
+                      const SizedBox(height: 2),
+                      Text(
+                        q.progress,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.4),
+                          fontSize: 10,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          item.label,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: q.isComplete
+                              ? AppColors.correct.withValues(alpha: 0.15)
+                              : AppColors.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          q.isComplete
+                              ? '✓ ${q.xpReward} XP'
+                              : '+${q.xpReward} XP',
+                          style: TextStyle(
+                            color: q.isComplete
+                                ? AppColors.correct
+                                : AppColors.primary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 )
                     .animate()
-                    .fadeIn(delay: (300 + 100 * index).ms, duration: 350.ms)
+                    .fadeIn(
+                        duration: 350.ms, delay: (400 + e.key * 80).ms)
                     .scale(
-                      begin: const Offset(0.85, 0.85),
-                      delay: (300 + 100 * index).ms,
+                      begin: const Offset(0.9, 0.9),
+                      delay: (400 + e.key * 80).ms,
                       duration: 350.ms,
                     ),
               ),
             );
           }).toList(),
-        );
+        ),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 6. Play Button
+  // ---------------------------------------------------------------------------
+
+  Widget _buildPlayButton(AppStrings s, AuthState state) {
+    return GestureDetector(
+      onTap: () {
+        final uid = state is AuthAuthenticated ? state.user.id : '';
+        final catLevels = state is AuthAuthenticated
+            ? state.user.categoryLevels
+            : <String, int>{};
+        final lang = context.read<AppLanguageNotifier>().language.name;
+        context.go('/categories', extra: {
+          'userId': uid,
+          'categoryLevels': catLevels,
+          'language': lang,
+        });
       },
+      child: Container(
+        width: double.infinity,
+        height: 60,
+        decoration: BoxDecoration(
+          color: AppColors.darkCard,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.08),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.play_arrow_rounded,
+                color: Colors.white, size: 28),
+            const SizedBox(width: 8),
+            Text(
+              s.startGame,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    )
+        .animate()
+        .fadeIn(duration: 400.ms, delay: 550.ms)
+        .slideY(begin: 0.1);
+  }
+
+  // ---------------------------------------------------------------------------
+  // 7. Menu Row — Duel, Rankings, Friends
+  // ---------------------------------------------------------------------------
+
+  Widget _buildMenuRow(AppStrings s, AuthState state) {
+    final uid = state is AuthAuthenticated ? state.user.id : '';
+
+    final items = [
+      _QuickAction(
+        icon: Icons.sports_esports_rounded,
+        label: s.duel,
+        color: AppColors.secondary,
+        onTap: () => context.go('/duel', extra: {'userId': uid}),
+      ),
+      _QuickAction(
+        icon: Icons.leaderboard_rounded,
+        label: s.rankings,
+        color: const Color(0xFFFF9800),
+        onTap: () => context.go('/leaderboard'),
+      ),
+      _QuickAction(
+        icon: Icons.people_rounded,
+        label: s.friends,
+        color: AppColors.accent,
+        onTap: () => context.go('/friends', extra: {'userId': uid}),
+      ),
+    ];
+
+    return Row(
+      children: items.asMap().entries.map((entry) {
+        final index = entry.key;
+        final item = entry.value;
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: index == 0 ? 0 : 5,
+              right: index == items.length - 1 ? 0 : 5,
+            ),
+            child: GestureDetector(
+              onTap: item.onTap,
+              child: Container(
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.darkCard,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: item.color.withValues(alpha: 0.15),
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: item.color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      child: Icon(item.icon, color: item.color, size: 20),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      item.label,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+                .animate()
+                .fadeIn(
+                    delay: (600 + 80 * index).ms, duration: 350.ms)
+                .scale(
+                  begin: const Offset(0.88, 0.88),
+                  delay: (600 + 80 * index).ms,
+                  duration: 350.ms,
+                ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
@@ -427,44 +705,70 @@ class _HomePageState extends State<HomePage> {
 // Helper widgets
 // -----------------------------------------------------------------------------
 
-class _StatItem extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String label;
+class _StatCard extends StatelessWidget {
+  final String emoji;
   final String value;
+  final String label;
+  final Color color;
 
-  const _StatItem({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
+  const _StatCard({
+    required this.emoji,
     required this.value,
+    required this.label,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(icon, color: iconColor, size: 22),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.darkCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: 0.12),
         ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.white.withValues(alpha: 0.45),
+      ),
+      child: Column(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 20)),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.white.withValues(alpha: 0.45),
+            ),
+          ),
+        ],
+      ),
     );
   }
+}
+
+class _QuestData {
+  final String emoji;
+  final String title;
+  final String progress;
+  final bool isComplete;
+  final int xpReward;
+
+  _QuestData({
+    required this.emoji,
+    required this.title,
+    required this.progress,
+    required this.isComplete,
+    required this.xpReward,
+  });
 }
 
 class _QuickAction {
