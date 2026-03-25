@@ -18,9 +18,9 @@ Flutter + Firebase ile gelistirilmis, Clean Architecture prensiplerine uygun, pr
 |:---:|:---:|:---:|
 | ![Oyun](screenshots/game.png) | ![Sonuc](screenshots/result.png) | ![Siralama](screenshots/leaderboard.png) |
 
-| Arkadaslar | Duello Lobisi | Duello Odasi |
+| Arkadaslar | Duello Odasi | Profil |
 |:---:|:---:|:---:|
-| ![Arkadaslar](screenshots/friends.png) | ![Duello Lobi](screenshots/duel_lobby.png) | ![Duello Oda](screenshots/duel_room.png) |
+| ![Arkadaslar](screenshots/friends.png) | ![Duello](screenshots/duel_room.png) | ![Profil](screenshots/profile.png) |
 
 ---
 
@@ -33,6 +33,8 @@ Flutter + Firebase ile gelistirilmis, Clean Architecture prensiplerine uygun, pr
 - Zamanlayici tabanli puanlama (hizli cevap = daha cok puan)
 - Her oyun icin 3 ipucu hakki (ilk dogru harfi yerlestirir)
 - Cozulen kelimeler tekrar cikmaz
+- Dogru/yanlis cevap ses efektleri
+- Kategori bazli bagimsiz level ilerlemesi
 
 ### Kategoriler (10 Adet)
 | Kategori | EN | TR |
@@ -51,16 +53,31 @@ Flutter + Firebase ile gelistirilmis, Clean Architecture prensiplerine uygun, pr
 **Toplam: 6.000 kelime** (3.000 EN + 3.000 TR)
 
 ### Cok Dilli Destek
-- Ingilizce ve Turkce tam destek
+- Ingilizce ve Turkce tam destek (189 cevirilmis metin)
 - Ana sayfadan tek tusla dil degistirme
 - Secilen dil tum sayfalara ve kelime bankalarina yansir
 - Dil tercihi cihazda kalici olarak saklanir
 
 ### Kimlik Dogrulama
-- Google ile giris
+- Google ile giris (OAuth)
 - Misafir (Guest) girisi - benzersiz Guest_XXXX isimlendirmesi
 - Misafir hesabi cihaza bagli kalici oturum
-- Misafir hesabini Google ile baglatma destegi
+- Misafir hesabini Google ile baglama destegi
+
+### Profil Sistemi
+- Kullanici adi degistirme
+- Profil fotografi yukleme (Firebase Storage)
+- Kamera ve galeri destegi
+- 12 farkli emoji avatar secenegi
+- Profil bilgileri liderlik tablosu ve arkadaslarda gosterilir
+
+### Gunluk Gorevler ve Seri Sistemi
+- **Hizli Tur** - 3 oyun tamamla → +50 XP
+- **Duello Kazan** - 1 duello kazan → +80 XP
+- **Arkadas Ekle** - 1 arkadas ekle → +30 XP
+- Gunluk seri takibi (ardisik gunlerde oynama)
+- XP ilerleme cubugu (1000 XP = 1 seviye)
+- Her gun otomatik sifirlama
 
 ### Arkadas Sistemi
 - 6 haneli benzersiz arkadas kodu
@@ -85,7 +102,22 @@ Flutter + Firebase ile gelistirilmis, Clean Architecture prensiplerine uygun, pr
 - Global siralama - puana gore
 - Ilk 3 icin ozel podium tasarimi
 - Profil fotografi, seviye ve puan gosterimi
-- Yenile butonu ile anlik guncelleme
+
+### Ses Efektleri
+| Ses | Dosya | Tetiklenme |
+|-----|-------|-----------|
+| Dogru cevap | `correct.wav` | Oyun + Duello |
+| Yanlis cevap | `wrong.wav` | Oyun + Duello |
+| Ipucu | `hint.wav` | Ipucu kullanildiginda |
+| Seviye gecme | `level_up.wav` | Level tamamlandiginda |
+| Sure uyarisi | `timer_warning.wav` | Son 10 saniyede |
+
+### Push Bildirimler (FCM)
+- Duello daveti geldiginde push bildirim
+- Arkadaslik istegi geldiginde push bildirim
+- Duello kabul/red bildirimler
+- Uygulama kapali olsa bile bildirimler gelir
+- Firebase Cloud Functions ile otomatik tetikleme
 
 ---
 
@@ -97,14 +129,22 @@ Flutter + Firebase ile gelistirilmis, Clean Architecture prensiplerine uygun, pr
 lib/
 ├── core/                          # Paylasilan altyapi
 │   ├── error/                     # Failure ve Exception siniflari
-│   ├── router/                    # GoRouter yapilandirmasi
+│   ├── router/                    # GoRouter yapilandirmasi (11 route)
 │   ├── theme/                     # Karanlik tema (Material 3 + Poppins)
 │   ├── usecases/                  # Base UseCase arayuzu
-│   ├── utils/                     # Sabitler, skor hesaplayici, dil yonetimi
+│   ├── utils/                     # Yardimci siniflar
+│   │   ├── app_strings.dart       # 189 cevirilmis metin (EN/TR)
+│   │   ├── app_language.dart      # Dil yonetimi (Provider)
+│   │   ├── sound_manager.dart     # Ses efektleri (Singleton)
+│   │   ├── notification_manager.dart  # FCM + yerel bildirimler
+│   │   ├── daily_quest_manager.dart   # Gunluk gorevler + seri
+│   │   ├── responsive.dart        # Responsive tasarim
+│   │   ├── constants.dart         # Uygulama sabitleri
+│   │   └── score_calculator.dart  # Puanlama mantigi
 │   └── widgets/                   # DuelInviteListener (global)
 │
 ├── features/                      # Ozellik modulleri
-│   ├── auth/                      # Kimlik dogrulama
+│   ├── auth/                      # Kimlik dogrulama + Profil
 │   │   ├── data/                  # DataSource, Model, Repository Impl
 │   │   ├── domain/                # Entity, Repository Contract, UseCase
 │   │   └── presentation/         # BLoC, Sayfa, Widget
@@ -112,17 +152,23 @@ lib/
 │   ├── game/                      # Kelime bulmaca oyunu
 │   │   ├── data/
 │   │   │   └── datasources/
-│   │   │       ├── word_bank/     # 10 EN kategori (her biri 300 kelime)
-│   │   │       └── word_bank_tr/  # 10 TR kategori (her biri 300 kelime)
+│   │   │       ├── word_bank/     # 10 EN kategori (300 kelime/kategori)
+│   │   │       └── word_bank_tr/  # 10 TR kategori (300 kelime/kategori)
 │   │   ├── domain/
 │   │   └── presentation/
 │   │
 │   ├── duel/                      # 1v1 duello sistemi
 │   ├── friends/                   # Arkadas yonetimi
 │   ├── leaderboard/               # Global siralama
-│   └── home/                      # Ana ekran
+│   └── home/                      # Ana ekran + Gunluk Gorevler
 │
-└── injection/                     # Dependency Injection (get_it)
+├── injection/                     # Dependency Injection (get_it)
+├── main.dart                      # Uygulama girisi + Firebase init
+└── firebase_options.dart          # Firebase yapilandirmasi
+
+functions/                         # Firebase Cloud Functions
+├── index.js                       # 4 Firestore trigger fonksiyonu
+└── package.json                   # Node.js 20 bagimliliklari
 ```
 
 ### Katmanlar
@@ -142,11 +188,11 @@ Event (Kullanici eylemi) → BLoC (Is mantigi) → State (UI guncelleme)
 **5 BLoC:**
 | BLoC | Gorev |
 |------|-------|
-| `AuthBloc` | Kimlik dogrulama durumu |
+| `AuthBloc` | Kimlik dogrulama + profil guncelleme |
 | `GameBloc` | Oyun oturumu yonetimi |
 | `LeaderboardBloc` | Siralama verileri |
-| `FriendsBloc` | Arkadas listesi ve istekler |
-| `DuelBloc` | Duello oturumlari ve davetler |
+| `FriendsBloc` | Arkadas listesi, istekler, arama |
+| `DuelBloc` | Duello oturumlari, davetler, skor |
 
 ### Hata Yonetimi
 
@@ -173,7 +219,28 @@ state is AuthAuthenticated → ana sayfaya yonlendir
 |--------|---------|
 | **Firebase Auth** | Google OAuth + Anonim giris |
 | **Cloud Firestore** | Kullanici verileri, skorlar, duellolar, arkadasliklar |
+| **Firebase Storage** | Profil fotograflari |
+| **Firebase Messaging** | FCM push bildirimler |
+| **Cloud Functions** | Bildirim trigger fonksiyonlari |
 
+### Firestore Koleksiyonlari
+
+| Koleksiyon | Amac |
+|-----------|------|
+| `users` | Kullanici profilleri, skorlar, seviyeler, arkadaslar, FCM token |
+| `scores` | Skor gecmisi |
+| `duels` | Duello odalari ve sonuclari |
+| `friend_requests` | Arkadaslik istekleri |
+| `duel_invites` | Duello davetleri |
+
+### Cloud Functions (4 Adet)
+
+| Fonksiyon | Tetikleyici | Bildirim |
+|-----------|------------|----------|
+| `onDuelInviteCreated` | Duello daveti olusturulunca | "X seni duelloya davet etti! ⚔️" |
+| `onFriendRequestCreated` | Arkadaslik istegi gonderilince | "X arkadasin olmak istiyor! 👥" |
+| `onDuelInviteAccepted` | Duello kabul edilince | "X duelloyu kabul etti! ⚔️" |
+| `onDuelInviteRejected` | Duello reddedilince | "X duelloyu reddetti 😔" |
 
 ### Real-Time Ozellikler
 - `watchDuel(duelId)` - Duello icerisinde anlik skor guncellemesi
@@ -202,6 +269,14 @@ Puan = (100 + ZamanBonusu) x ZorlukCarpani
 - Dogru cevap bonusu: **+8 saniye**
 - Duello suresi: **300 saniye** (5 dakika)
 
+### XP Sistemi
+| Kaynak | XP |
+|--------|-----|
+| Gunluk Gorev: Hizli Tur (3 oyun) | +50 XP |
+| Gunluk Gorev: Duello Kazan | +80 XP |
+| Gunluk Gorev: Arkadas Ekle | +30 XP |
+| 1 Seviye = 1000 XP | |
+
 ---
 
 ## Kullanilan Paketler
@@ -214,7 +289,12 @@ Puan = (100 + ZamanBonusu) x ZorlukCarpani
 | `firebase_core` | 3.12.1 | Firebase cekirdek |
 | `firebase_auth` | 5.5.2 | Kimlik dogrulama |
 | `cloud_firestore` | 5.6.6 | Veritabani |
+| `firebase_storage` | 12.4.4 | Dosya depolama |
+| `firebase_messaging` | 15.2.4 | Push bildirimler |
 | `google_sign_in` | 6.2.2 | Google OAuth |
+| `image_picker` | 1.1.2 | Kamera/galeri erisimi |
+| `audioplayers` | 6.1.0 | Ses efektleri |
+| `flutter_local_notifications` | 18.0.1 | Yerel bildirimler |
 | `dartz` | 0.10.1 | Fonksiyonel hata yonetimi (Either) |
 | `equatable` | 2.0.7 | Deger esitligi |
 | `flutter_animate` | 4.5.2 | Animasyonlar |
@@ -227,12 +307,11 @@ Puan = (100 + ZamanBonusu) x ZorlukCarpani
 
 ---
 
----
-
 ## Tema ve Tasarim
 
 - **Karanlik tema** (Material 3)
 - **Yazi tipi:** Google Fonts Poppins
+- **Responsive tasarim:** Mobil, Tablet ve Web uyumlu
 
 | Renk | Hex | Kullanim |
 |------|-----|---------|
@@ -242,6 +321,14 @@ Puan = (100 + ZamanBonusu) x ZorlukCarpani
 | Surface | `#1A1A2E` | Kart yuzey |
 | Success | `#4CAF50` | Dogru cevap |
 | Error | `#CF6679` | Yanlis cevap |
+| Warning | `#FF9800` | Uyari (timer) |
+
+### Responsive Breakpoint'ler
+| Cihaz | Genislik |
+|-------|---------|
+| Mobil | < 600px |
+| Tablet | 600-1024px |
+| Masaustu | > 1024px |
 
 ---
 
@@ -250,7 +337,8 @@ Puan = (100 + ZamanBonusu) x ZorlukCarpani
 ### Gereksinimler
 - Flutter SDK 3.x+
 - Dart SDK 3.x+
-- Firebase projesi (Authentication + Firestore)
+- Firebase projesi (Auth + Firestore + Storage + Messaging + Functions)
+- Node.js 20+ (Cloud Functions icin)
 - Android Studio / VS Code
 
 ### Adimlar
@@ -267,13 +355,19 @@ flutter pub get
 # firebase_options.dart dosyasi zaten mevcut
 # Firestore rules'lari Firebase Console'dan ayarlayin
 
-# 4. Uygulamayi calistirin
+# 4. Cloud Functions deploy
+cd functions
+npm install
+cd ..
+firebase deploy --only functions --project <project-id>
+
+# 5. Uygulamayi calistirin
 flutter run
 
-# 5. Web icin
+# 6. Web icin
 flutter run -d chrome
 
-# 6. APK olusturma
+# 7. APK olusturma
 flutter build apk --release
 ```
 
@@ -299,6 +393,12 @@ service cloud.firestore {
     match /duels/{duelId} {
       allow read, write: if request.auth != null;
     }
+    match /friend_requests/{requestId} {
+      allow read, write: if request.auth != null;
+    }
+    match /duel_invites/{inviteId} {
+      allow read, write: if request.auth != null;
+    }
   }
 }
 ```
@@ -309,28 +409,19 @@ service cloud.firestore {
 
 | Metrik | Deger |
 |--------|-------|
-| Toplam Dart dosyasi | ~99 |
+| Toplam Dart dosyasi | 104 |
 | Ozellik modulu | 6 (auth, game, duel, friends, leaderboard, home) |
 | BLoC sayisi | 5 |
 | Kelime kategorisi | 10 (her dil icin) |
 | Kategori basina kelime | 300 |
 | Toplam kelime | 6.000 (3.000 EN + 3.000 TR) |
 | Firestore koleksiyonu | 5 |
+| Cloud Functions | 4 |
+| Ses efekti | 5 |
+| Cevirilmis metin | 189 |
 | Desteklenen dil | 2 (EN, TR) |
 | Desteklenen platform | Android, iOS, Web, Windows, macOS |
-
----
-
-## Yol Haritasi
-
-- [ ] Telefon numarasi ile giris
-- [ ] Push bildirimler (FCM)
-- [ ] Haftalik turnuvalar
-- [ ] Basarim sistemi (Achievement)
-- [ ] Profil duzenleme ekrani
-- [ ] Sesli efektler ve muzik
-- [ ] Karakter/avatar sistemi
-- [ ] Daha fazla dil destegi (DE, FR, ES)
+| Sayfa (Route) sayisi | 11 |
 
 ---
 
