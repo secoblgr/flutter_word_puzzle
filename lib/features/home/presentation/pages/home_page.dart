@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:word_puzzle/core/theme/app_colors.dart';
 import 'package:word_puzzle/core/utils/app_language.dart';
 import 'package:word_puzzle/core/utils/app_strings.dart';
+import 'package:word_puzzle/core/utils/daily_quest_manager.dart';
 import 'package:word_puzzle/core/utils/responsive.dart';
 import 'package:word_puzzle/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -18,6 +19,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  bool _dailyResetDone = false;
+
   @override
   void initState() {
     super.initState();
@@ -36,6 +39,16 @@ class _HomePageState extends State<HomePage> {
       listener: (context, state) {
         if (state is AuthUnauthenticated) {
           context.go('/login');
+        }
+        if (state is AuthAuthenticated && !_dailyResetDone) {
+          _dailyResetDone = true;
+          // Ensure daily counters are reset if date changed, update streak.
+          DailyQuestManager.instance.ensureDailyReset(state.user.id).then((_) {
+            // Reload user data to reflect reset values.
+            if (mounted) {
+              context.read<AuthBloc>().add(const AuthCheckRequested());
+            }
+          });
         }
       },
       child: Scaffold(

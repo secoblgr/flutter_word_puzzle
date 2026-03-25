@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:word_puzzle/core/utils/daily_quest_manager.dart';
 import 'package:word_puzzle/features/friends/data/datasources/friends_remote_datasource.dart';
 import 'package:word_puzzle/features/friends/domain/entities/friend_entity.dart';
 import 'package:word_puzzle/features/friends/domain/usecases/add_friend.dart';
@@ -328,6 +329,8 @@ class FriendsBloc extends Bloc<FriendsEvent, FriendsState> {
     await result.fold(
       (failure) async => emit(FriendsError(failure.message)),
       (_) async {
+        // Daily quest: friend added
+        DailyQuestManager.instance.onFriendAdded(event.userId);
         // Reload everything.
         add(FriendsLoadRequested(event.userId));
       },

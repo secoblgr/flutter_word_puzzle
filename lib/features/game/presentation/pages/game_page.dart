@@ -7,6 +7,7 @@ import 'package:word_puzzle/core/theme/app_colors.dart';
 import 'package:word_puzzle/core/utils/app_language.dart';
 import 'package:word_puzzle/core/utils/app_strings.dart';
 import 'package:word_puzzle/core/utils/responsive.dart';
+import 'package:word_puzzle/core/utils/daily_quest_manager.dart';
 import 'package:word_puzzle/core/utils/sound_manager.dart';
 import 'package:word_puzzle/features/game/presentation/bloc/game_bloc.dart';
 import 'package:word_puzzle/features/game/presentation/widgets/letter_tile.dart';
@@ -175,6 +176,8 @@ class _GamePageState extends State<GamePage>
 
     if (state is GameLevelComplete) {
       SoundManager.instance.playLevelUp();
+      // Daily quest: game completed
+      DailyQuestManager.instance.onGameCompleted(widget.userId);
       context.go('/result', extra: {
         'totalScore': state.totalScore,
         'level': state.level,

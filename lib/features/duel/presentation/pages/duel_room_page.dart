@@ -12,6 +12,7 @@ import 'package:word_puzzle/core/utils/app_language.dart';
 import 'package:word_puzzle/core/utils/app_strings.dart';
 import 'package:word_puzzle/core/utils/responsive.dart';
 import 'package:word_puzzle/core/utils/constants.dart';
+import 'package:word_puzzle/core/utils/daily_quest_manager.dart';
 import 'package:word_puzzle/core/utils/score_calculator.dart';
 import 'package:word_puzzle/core/utils/sound_manager.dart';
 import 'package:word_puzzle/core/utils/word_scrambler.dart';
@@ -48,6 +49,7 @@ class _DuelRoomPageState extends State<DuelRoomPage> {
   bool _showCorrectAnim = false;
   bool _showWrongAnim = false;
   int _hintsRemaining = 3;
+  bool _duelResultHandled = false;
 
   List<_ScrambleLetter> _scrambledLetters = [];
   List<_SelectedLetter> _selectedLetters = [];
@@ -319,6 +321,15 @@ class _DuelRoomPageState extends State<DuelRoomPage> {
     // Start timer when game is playing (both players in room).
     if (state is DuelPlaying && _wordsLoaded) {
       _startTimer();
+    }
+
+    // Daily quest: duel won
+    if (state is DuelFinished && !_duelResultHandled) {
+      _duelResultHandled = true;
+      final duel = state.duel;
+      if (duel.winnerId == widget.userId) {
+        DailyQuestManager.instance.onDuelWon(widget.userId);
+      }
     }
 
     if (state is DuelError) {
