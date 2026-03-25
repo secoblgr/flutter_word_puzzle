@@ -13,6 +13,7 @@ import 'package:word_puzzle/core/utils/app_strings.dart';
 import 'package:word_puzzle/core/utils/responsive.dart';
 import 'package:word_puzzle/core/utils/constants.dart';
 import 'package:word_puzzle/core/utils/score_calculator.dart';
+import 'package:word_puzzle/core/utils/sound_manager.dart';
 import 'package:word_puzzle/core/utils/word_scrambler.dart';
 import 'package:word_puzzle/features/duel/domain/entities/duel_entity.dart';
 import 'package:word_puzzle/features/duel/presentation/bloc/duel_bloc.dart';
@@ -92,6 +93,9 @@ class _DuelRoomPageState extends State<DuelRoomPage> {
       if (!mounted) return;
       setState(() {
         _remainingSeconds--;
+        if (_remainingSeconds == 10) {
+          SoundManager.instance.playTimerWarning();
+        }
         if (_remainingSeconds <= 0) {
           _remainingSeconds = 0;
           timer.cancel();
@@ -185,6 +189,7 @@ class _DuelRoomPageState extends State<DuelRoomPage> {
       }
 
       _hintsRemaining--;
+      SoundManager.instance.playHint();
     });
 
     // Auto-check if all letters placed.
@@ -198,6 +203,7 @@ class _DuelRoomPageState extends State<DuelRoomPage> {
     final answer = _selectedLetters.map((s) => s.letter).join();
 
     if (answer.toUpperCase() == currentWord.word.toUpperCase()) {
+      SoundManager.instance.playCorrect();
       // Correct!
       final points = ScoreCalculator.calculate(
         remainingSeconds: _remainingSeconds,
@@ -225,6 +231,7 @@ class _DuelRoomPageState extends State<DuelRoomPage> {
         }
       });
     } else {
+      SoundManager.instance.playWrong();
       // Wrong — flash red and reset.
       setState(() => _showWrongAnim = true);
       Future.delayed(const Duration(milliseconds: 400), () {

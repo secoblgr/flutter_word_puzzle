@@ -37,6 +37,9 @@ dependencies:
   shimmer: ^3.0.0
   lottie: ^3.3.1
 
+  # Audio
+  audioplayers: ^6.1.0
+
   # Utils
   uuid: ^4.5.1
   intl: ^0.20.2
@@ -69,3 +72,4 @@ flutter:
 
   assets:
     - assets/icons/
+    - assets/sounds/

@@ -7,6 +7,7 @@ import 'package:word_puzzle/core/theme/app_colors.dart';
 import 'package:word_puzzle/core/utils/app_language.dart';
 import 'package:word_puzzle/core/utils/app_strings.dart';
 import 'package:word_puzzle/core/utils/responsive.dart';
+import 'package:word_puzzle/core/utils/sound_manager.dart';
 import 'package:word_puzzle/features/game/presentation/bloc/game_bloc.dart';
 import 'package:word_puzzle/features/game/presentation/widgets/letter_tile.dart';
 import 'package:word_puzzle/features/game/presentation/widgets/timer_widget.dart';
@@ -35,6 +36,7 @@ class _GamePageState extends State<GamePage>
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
   bool _showWrongFlash = false;
+  bool _timerWarningSounded = false;
 
   // Floating score overlay state
   OverlayEntry? _scoreOverlay;
@@ -132,7 +134,18 @@ class _GamePageState extends State<GamePage>
   // ---------------------------------------------------------------------------
 
   void _blocListener(BuildContext context, GameState state) {
+    // Timer warning sound at exactly 10 seconds remaining.
+    if (state is GamePlaying && state.remainingTime == 10 && !_timerWarningSounded) {
+      _timerWarningSounded = true;
+      SoundManager.instance.playTimerWarning();
+    }
+    // Reset timer warning flag when a new word starts.
+    if (state is GamePlaying && state.remainingTime > 10) {
+      _timerWarningSounded = false;
+    }
+
     if (state is GameWordCorrect) {
+      SoundManager.instance.playCorrect();
       // Show floating score popup.
       _showFloatingScore(state.earnedPoints);
 
@@ -145,6 +158,7 @@ class _GamePageState extends State<GamePage>
     }
 
     if (state is GameWordWrong) {
+      SoundManager.instance.playWrong();
       // Trigger shake + red flash, then reset.
       setState(() => _showWrongFlash = true);
       _shakeController.forward(from: 0).then((_) {
@@ -160,6 +174,7 @@ class _GamePageState extends State<GamePage>
     }
 
     if (state is GameLevelComplete) {
+      SoundManager.instance.playLevelUp();
       context.go('/result', extra: {
         'totalScore': state.totalScore,
         'level': state.level,
@@ -491,7 +506,10 @@ class _GamePageState extends State<GamePage>
 
     return GestureDetector(
       onTap: hasHints
-          ? () => context.read<GameBloc>().add(const GameHintRequested())
+          ? () {
+              SoundManager.instance.playHint();
+              context.read<GameBloc>().add(const GameHintRequested());
+            }
           : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
