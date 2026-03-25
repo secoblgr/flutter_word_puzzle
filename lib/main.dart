@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:word_puzzle/core/router/app_router.dart';
 import 'package:word_puzzle/core/theme/app_theme.dart';
 import 'package:word_puzzle/core/utils/app_language.dart';
+import 'package:word_puzzle/core/utils/notification_manager.dart';
 import 'package:word_puzzle/core/widgets/duel_invite_listener.dart';
 import 'package:word_puzzle/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:word_puzzle/features/game/presentation/bloc/game_bloc.dart';
@@ -36,6 +38,13 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Register FCM background message handler.
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+  // Initialize notifications.
+  await NotificationManager.instance.init();
+
   await di.init();
 
   runApp(const WordPuzzleApp());

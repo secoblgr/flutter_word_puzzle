@@ -208,11 +208,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final data = doc.data() ?? {};
       // Merge updated auth profile fields while preserving game data.
       final existingName = data['name'] as String? ?? '';
+      final existingPhoto = data['photoUrl'] as String? ?? '';
       final updates = <String, dynamic>{
         'name': firebaseUser.displayName ??
             (existingName.isNotEmpty ? existingName : _generateGuestName(firebaseUser.uid)),
         'email': firebaseUser.email ?? data['email'] ?? '',
-        'photoUrl': firebaseUser.photoURL ?? data['photoUrl'] ?? '',
+        // Preserve custom-uploaded photo; only fall back to Auth photo if empty.
+        'photoUrl': existingPhoto.isNotEmpty
+            ? existingPhoto
+            : (firebaseUser.photoURL ?? ''),
       };
 
       // Generate friendCode if missing.

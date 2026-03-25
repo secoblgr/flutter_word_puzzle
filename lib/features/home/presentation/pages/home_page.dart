@@ -8,6 +8,7 @@ import 'package:word_puzzle/core/theme/app_colors.dart';
 import 'package:word_puzzle/core/utils/app_language.dart';
 import 'package:word_puzzle/core/utils/app_strings.dart';
 import 'package:word_puzzle/core/utils/daily_quest_manager.dart';
+import 'package:word_puzzle/core/utils/notification_manager.dart';
 import 'package:word_puzzle/core/utils/responsive.dart';
 import 'package:word_puzzle/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -42,8 +43,11 @@ class _HomePageState extends State<HomePage> {
         }
         if (state is AuthAuthenticated && !_dailyResetDone) {
           _dailyResetDone = true;
+          final uid = state.user.id;
+          // Save FCM token for push notifications.
+          NotificationManager.instance.saveToken(uid);
           // Ensure daily counters are reset if date changed, update streak.
-          DailyQuestManager.instance.ensureDailyReset(state.user.id).then((_) {
+          DailyQuestManager.instance.ensureDailyReset(uid).then((_) {
             // Reload user data to reflect reset values.
             if (mounted) {
               context.read<AuthBloc>().add(const AuthCheckRequested());
