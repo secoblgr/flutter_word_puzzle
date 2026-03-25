@@ -174,15 +174,6 @@ state is AuthAuthenticated → ana sayfaya yonlendir
 | **Firebase Auth** | Google OAuth + Anonim giris |
 | **Cloud Firestore** | Kullanici verileri, skorlar, duellolar, arkadasliklar |
 
-### Firestore Koleksiyonlari
-
-| Koleksiyon | Amac |
-|-----------|------|
-| `users` | Kullanici profilleri, skorlar, seviyeler, arkadas listesi, cozulen kelimeler |
-| `scores` | Skor gecmisi |
-| `duels` | Duello mac dokumanlari |
-| `friend_requests` | Arkadaslik istekleri |
-| `duel_invites` | Duello davetleri |
 
 ### Real-Time Ozellikler
 - `watchDuel(duelId)` - Duello icerisinde anlik skor guncellemesi
@@ -235,19 +226,6 @@ Puan = (100 + ZamanBonusu) x ZorlukCarpani
 | `uuid` | 4.5.1 | Benzersiz ID uretimi |
 
 ---
-
-## Oyun Sabitleri
-
-```dart
-maxLevel: 100          // Maksimum seviye
-wordsPerLevel: 5       // Seviye basina kelime sayisi
-baseTimerSeconds: 120  // Temel zamanlayici (saniye)
-bonusTimePerCorrect: 8 // Dogru cevap zaman bonusu
-basePointsPerWord: 100 // Kelime basina temel puan
-maxHintsPerGame: 3     // Oyun basina ipucu hakki
-duelWordCount: 18      // Duello basina kelime sayisi
-duelTimerSeconds: 300  // Duello suresi (saniye)
-```
 
 ---
 
@@ -358,4 +336,4 @@ service cloud.firestore {
 
 ## Lisans
 
-Bu proje ozel kullanim icindir. Izinsiz dagitim ve ticari kullanim yasaktir.
+Izinsiz dagitim ve ticari kullanim yasaktir.
