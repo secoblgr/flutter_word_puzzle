@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -93,13 +91,11 @@ class _ProfilePageState extends State<ProfilePage> {
           .child('profile_photos')
           .child('$uid.jpg');
 
-      UploadTask uploadTask;
-      if (kIsWeb) {
-        final bytes = await picked.readAsBytes();
-        uploadTask = ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
-      } else {
-        uploadTask = ref.putFile(File(picked.path));
-      }
+      final bytes = await picked.readAsBytes();
+      final uploadTask = ref.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
 
       final snapshot = await uploadTask;
       final downloadUrl = await snapshot.ref.getDownloadURL();

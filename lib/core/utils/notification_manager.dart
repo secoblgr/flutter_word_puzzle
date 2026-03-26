@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -66,7 +65,7 @@ class NotificationManager {
     );
 
     // Create Android notification channel.
-    if (!kIsWeb && Platform.isAndroid) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       const channel = AndroidNotificationChannel(
         'word_puzzle_channel',
         'Word Puzzle',

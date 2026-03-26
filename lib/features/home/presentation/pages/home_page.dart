@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -44,8 +45,10 @@ class _HomePageState extends State<HomePage> {
         if (state is AuthAuthenticated && !_dailyResetDone) {
           _dailyResetDone = true;
           final uid = state.user.id;
-          // Save FCM token for push notifications.
-          NotificationManager.instance.saveToken(uid);
+          // Save FCM token for push notifications (not on web).
+          if (!kIsWeb) {
+            NotificationManager.instance.saveToken(uid);
+          }
           // Ensure daily counters are reset if date changed, update streak.
           DailyQuestManager.instance.ensureDailyReset(uid).then((_) {
             // Reload user data to reflect reset values.
